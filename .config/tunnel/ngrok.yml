@@ -1,0 +1,7 @@
+version: "2"
+authtoken: ${TUNNEL_TOKEN}
+tunnels: 
+  lighthouse:
+    labels:
+      - ${TUNNEL_EDGE}
+    addr: http://${TUNNEL_HOST}/

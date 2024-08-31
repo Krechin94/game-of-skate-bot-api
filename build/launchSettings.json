@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Start Game Server": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "gameofskatebotapi": "StartDebugging"
+      }
+    }
+  }
+}

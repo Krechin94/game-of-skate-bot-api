@@ -1,0 +1,31 @@
+services:
+  gameofskatebotapi:
+    image: ${DOCKER_REGISTRY-}gameofskatebotapi
+    container_name: bot
+    restart: always
+    env_file:
+      - .env
+    build:
+      context: ../src
+      dockerfile: GameOfSkateBotApi/Dockerfile
+
+# Cache to save state for the current games being played
+  gameofskatecache:
+    image: redis
+    container_name: cache
+    restart: always
+    command: redis-server --save 60 1
+    ports:
+        - 6379:6379    
+    volumes: 
+        - cache:/data
+
+#TODO: Add persistent SQL or NoSql database to store trick lists. Tricks are entities with name and difficulty setting
+# trciksstorage:
+#    image: mongodb
+#    ...
+
+volumes:
+  cache:
+#TODO: also to save database on disk uncomment the line below and add to volumes: as it done in gameofskatecache service
+  #storage:

@@ -1,0 +1,19 @@
+services:
+  gameofskatebotapi:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+    # to have local access to the API without tunnel use this port
+    ports:
+      - 5130:8080
+      
+  tunnel:
+    image: ${DOCKER_REGISTRY-}gameofskatebottunnel
+    container_name: tunnel
+    restart: always
+    build:
+      context: ../.config/tunnel
+      args:
+          TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+          TUNNEL_EDGE: ${TUNNEL_EDGE}
+          TUNNEL_HOST: gameofskatebotapi:8080
