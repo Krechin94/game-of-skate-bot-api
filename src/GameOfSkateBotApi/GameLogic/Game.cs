@@ -1,4 +1,5 @@
-﻿using GameOfSkateBotApi.GameLogic.Common;
+﻿using GameOfSkateBotApi.Buttons;
+using GameOfSkateBotApi.GameLogic.Common;
 using GameOfSkateBotApi.GameLogic.Entity;
 using GameOfSkateBotApi.GameLogic.Exceptions;
 
@@ -7,14 +8,16 @@ namespace GameOfSkateBotApi.GameLogic
 	public class Game
 	{
 		private readonly Tricks _tricks;
+		private readonly TelegramButtons _telegramButtons;
 
 		//TODO: replace the Dictionary with game state storage here:
 		//public IRedis _cache;
 		public Dictionary<long, Stack<string>> _gameIdWithTricks = [];
 
-		public Game(Tricks tricks)
+		public Game(Tricks tricks, TelegramButtons telegramButtons)
 		{
 			_tricks = tricks;
+			_telegramButtons = telegramButtons;
 		}
 
 		/// <summary>
@@ -35,7 +38,7 @@ namespace GameOfSkateBotApi.GameLogic
 				throw new GameAlreadyStartedException("The game is already started, if you want to end it now, I can't help you.");
 			_gameIdWithTricks.Add(gameId, new Stack<string>(_tricks.GenerateFor(difficulty).Shuffle()));
 
-			return NextTrick(gameId);
+            return NextTrick(gameId);
 		}
 
 		/// <summary>
@@ -47,17 +50,22 @@ namespace GameOfSkateBotApi.GameLogic
 		/// <exception cref="GameNotStartedException">Thrown if there are no tricks left or <see cref="Start(long, Difficulty)"/>
 		/// wasn't invoked before accessing this method.</exception>
 		public Task<string> NextTrick(long gameId)
-		{
+        {
 			//TODO: get from cache here then check if game is null -
 			//if null then it wasn't ever written to the cache OR it's game over
 			if (!_gameIdWithTricks.ContainsKey(gameId))
-				throw new GameNotStartedException("You didn't start the game, ain't ya?");
+			{
+                throw new GameNotStartedException("You didn't start the game, ain't ya?");
+            }
 
-			if (!_gameIdWithTricks[gameId].Any()) 
-			
-			return End(gameId);
-		    
-			return Task.FromResult(_gameIdWithTricks[gameId].Pop());
+			if (!_gameIdWithTricks[gameId].Any())
+			{
+				_telegramButtons.ShowAddingLevelOrEndButtons(gameId);
+				return End(gameId);
+			}
+
+            _telegramButtons.ShowNextOrEndButtons(gameId);
+            return Task.FromResult(_gameIdWithTricks[gameId].Pop());
 		}
 
 		/// <summary>
@@ -67,10 +75,16 @@ namespace GameOfSkateBotApi.GameLogic
 		{
 			//TODO: remove this code, clear cache destroy stack of tricks
 			if (!_gameIdWithTricks.ContainsKey(gameId))
-				throw new GameNotStartedException("You didn't start the game, ain't ya?");
+			{
+
+                _telegramButtons.ShowStartButtons(gameId);
+                throw new GameNotStartedException("You didn't start the game, ain't ya?");
+
+            }
 
 			_gameIdWithTricks.Remove(gameId);
-			return Task.FromResult("Game Over");
-		}
-	}
+            _telegramButtons.ShowStartButtons(gameId);
+            return Task.FromResult("Game Over");
+        }
+    }
 }

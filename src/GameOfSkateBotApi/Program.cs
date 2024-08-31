@@ -1,4 +1,5 @@
 using GameOfSkateBotApi.BotSettings;
+using GameOfSkateBotApi.Buttons;
 using GameOfSkateBotApi.GameLogic;
 using GameOfSkateBotApi.Webhook;
 using Telegram.Bot;
@@ -30,6 +31,7 @@ namespace GameOfSkateBotApi
 			//TODO: change to Scoped when redis will be introduced
 			builder.Services.AddSingleton<Tricks>();
 			builder.Services.AddSingleton<Game>();
+			builder.Services.AddSingleton<TelegramButtons>();
 			builder.Services.AddScoped<WebhookHandler>();
 
 			//TODO: add default global exception handling so app wont die on exception

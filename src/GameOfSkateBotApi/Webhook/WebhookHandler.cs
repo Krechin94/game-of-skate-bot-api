@@ -1,4 +1,5 @@
-﻿using GameOfSkateBotApi.Webhook.Exceptions;
+﻿using GameOfSkateBotApi.Buttons;
+using GameOfSkateBotApi.Webhook.Exceptions;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -11,16 +12,17 @@ namespace GameOfSkateBotApi.Webhook
 		private ITelegramBotClient _botclient;
 		private readonly Game _game;
 
-		public WebhookHandler(ITelegramBotClient botclient, Game game)
+        public WebhookHandler(ITelegramBotClient botclient, Game game)
 		{
 			_botclient = botclient;
 			_game = game;
-		}
+        }
 
 		public async Task HandleUpdateAsync(Update update, CancellationToken cancellationToken)
 		{
 			var handler = update.Type switch
 			{
+				
 				UpdateType.Message => StartGame(update.Message, cancellationToken),
 				_ => throw new MessageMissingException("I don't know what to do with that...")
 			};
@@ -45,7 +47,7 @@ namespace GameOfSkateBotApi.Webhook
 				"/advanced" => _game.Start(message.Chat.Id, GameLogic.Entity.Difficulty.Advanced),
 				"/pro" => _game.Start(message.Chat.Id, GameLogic.Entity.Difficulty.Hard),
 				"/onlyAdvanced" => _game.Start(message.Chat.Id, GameLogic.Entity.Difficulty.OnlyAdvanced),
-				"/onlyHard" => _game.Start(message.Chat.Id, GameLogic.Entity.Difficulty.OnlyHard),
+				"/onlyPro" => _game.Start(message.Chat.Id, GameLogic.Entity.Difficulty.OnlyPro),
                 "/next" => _game.NextTrick(message.Chat.Id),
 				"/end" => _game.End(message.Chat.Id),
 				_ => Task.FromResult("Seems like it is not a command so fuck off.")

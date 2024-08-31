@@ -19,7 +19,7 @@ namespace GameOfSkateBotApi.GameLogic
 				Difficulty.Advanced => _trickStorage.Where(t => t.Difficulty <= Difficulty.Advanced).Select(t => t.TrickName),
 				Difficulty.Hard => _trickStorage.Where(t => t.Difficulty <= Difficulty.Hard).Select(t => t.TrickName),
 				Difficulty.OnlyAdvanced => _trickStorage.Where(t => t.Difficulty == Difficulty.Advanced).Select(t =>t.TrickName),
-				Difficulty.OnlyHard => _trickStorage.Where(t => t.Difficulty == Difficulty.Hard).Select(t => t.TrickName),
+				Difficulty.OnlyPro => _trickStorage.Where(t => t.Difficulty == Difficulty.Hard).Select(t => t.TrickName),
 				_ => throw new NotImplementedException($"Something went wrong - no such difficulty {(int)difficulty}")
 			};
 
@@ -35,7 +35,7 @@ namespace GameOfSkateBotApi.GameLogic
 						Difficulty.Advanced => _advancedTricks.Select(t => new Trick(t, difficulty)),
                         Difficulty.Hard => _hardTricks.Select(t => new Trick(t, difficulty)),
                         Difficulty.OnlyAdvanced => _advancedTricks.Select(t => new Trick(t, difficulty)),
-                        Difficulty.OnlyHard => _advancedTricks.Select(t => new Trick(t, difficulty)),
+                        Difficulty.OnlyPro => _advancedTricks.Select(t => new Trick(t, difficulty)),
                         _ => throw new NotImplementedException($"Something went wrong - no such difficulty {(int)difficulty}")
 					});
 		}
@@ -46,7 +46,7 @@ namespace GameOfSkateBotApi.GameLogic
 			"fakie ollie",
 			"switch ollie",
 			"nollie",
-			"bs 180",
+            /*"bs 180",
 			"fakie bs 180",
 			"switch bs 180",
 			"nollie bs 180",
@@ -67,15 +67,15 @@ namespace GameOfSkateBotApi.GameLogic
 			"kickflip",
 			"fakie kickflip",
 			"heelflip",
-			"fakie heelflip"
-		];
+			"fakie heelflip"*/
+        ];
 		private static List<string> _advancedTricks =
 		[
 			"varial kickflip",
 			"fakie varial kickflip",
 			"varial heelflip",
 			"fakie varial heelflip",
-			"bs 180 kickflip",
+            /*"bs 180 kickflip",
 			"fakie halfcab kickflip",
 			"fs 180 kickflip",
 			"fakie bs 180 kickflip",
@@ -97,8 +97,8 @@ namespace GameOfSkateBotApi.GameLogic
 			"fakie big flip",
 			"nollie 360 fs shove it",
 			"inward heelflip",
-			"fakie inward heelflip"
-		];
+			"fakie inward heelflip"*/
+        ];
 		private static List<string> _hardTricks =
 		[
 			"switch kickflip",
