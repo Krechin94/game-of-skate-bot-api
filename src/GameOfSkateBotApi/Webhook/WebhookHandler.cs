@@ -1,4 +1,5 @@
 ﻿using GameOfSkateBotApi.Buttons;
+using GameOfSkateBotApi.GameLogic;
 using GameOfSkateBotApi.Webhook.Exceptions;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -11,14 +12,18 @@ namespace GameOfSkateBotApi.Webhook
 	{
 		private ITelegramBotClient _botclient;
 		private readonly Game _game;
+		private readonly TelegramButtons _telegramButtons;
 
-        public WebhookHandler(ITelegramBotClient botclient, Game game)
+        public WebhookHandler(ITelegramBotClient botclient, Game game, TelegramButtons telegramButtons)
 		{
 			_botclient = botclient;
 			_game = game;
+			_telegramButtons = telegramButtons;
+
+			_game.SubscribeOnEvents(GameEventHandler);
         }
 
-		public async Task HandleUpdateAsync(Update update, CancellationToken cancellationToken)
+        public async Task HandleUpdateAsync(Update update, CancellationToken cancellationToken)
 		{
 			var handler = update.Type switch
 			{
@@ -30,7 +35,7 @@ namespace GameOfSkateBotApi.Webhook
 			//TODO: create Messaging service class that will inject here using Dependency Injection
 			// and call it instead
 			await _botclient.SendTextMessageAsync(
-				chatId: update.Message.Chat.Id,
+				chatId: update.Message!.Chat.Id,
 				text: await handler
 			);
 		}
@@ -52,5 +57,23 @@ namespace GameOfSkateBotApi.Webhook
 				"/end" => _game.End(message.Chat.Id),
 				_ => Task.FromResult("Seems like it is not a command so fuck off.")
 			};
-	}
+
+        private async void GameEventHandler(GameEventType eventType, long chatId)
+        {
+            switch (eventType)
+            {
+                case GameEventType.GameEnded:
+                    await _telegramButtons.ShowAddingLevelOrEndButtons(chatId);
+                    break;
+
+                case GameEventType.GameStarted:
+                    await _telegramButtons.ShowStartButtons(chatId);
+                    break;
+
+                case GameEventType.NextTrick:
+                    await _telegramButtons.ShowNextOrEndButtons(chatId);
+                    break;
+            }
+        }
+    }
 }

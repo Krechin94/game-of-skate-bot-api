@@ -7,36 +7,31 @@ using System.Text.Json;
 
 namespace GameOfSkateBotApi.GameLogic
 {
-	public class Game
+    public enum GameEventType {GameEnded, GameStarted, NextTrick}
+    public class Game
 	{
 		private readonly Tricks _tricks;
-		private readonly TelegramButtons _telegramButtons;
-
-		//TODO: replace the Dictionary with game state storage here:
-		//public IRedis _cache;
-		//public Dictionary<long, Stack<string>> _gameIdWithTricks = [];
+        private Action<GameEventType, long>? callback;
         private IDistributedCache _cache;
-        public Game(Tricks tricks, TelegramButtons telegramButtons, IDistributedCache cache)
+        public Game(Tricks tricks, IDistributedCache cache)
 		{
 			_tricks = tricks;
-			_telegramButtons = telegramButtons;
 			_cache = cache;
 		}
+        public void SubscribeOnEvents(Action<GameEventType, long> callback) => this.callback = callback;
 
-		/// <summary>
-		/// Starts the game for this particular <paramref name="gameId"/>. This means that list of tricks will be
-		/// generated for this <paramref name="gameId"/> that should be iterated using <see cref="NextTrick(long)"/>.
-		/// The very first trick will be populated as a result of starting a new game.
-		/// </summary>
-		/// <param name="gameId">Unique Id for new game</param>
-		/// <param name="difficulty">Difficulty level</param>
-		/// <returns>First trick from generated trick sequence that will be used in this new game.</returns>
-		public async Task<string> Start(long gameId, Difficulty difficulty)
+        public void Unsubscribe() => callback = null;
+
+        /// <summary>
+        /// Starts the game for this particular <paramref name="gameId"/>. This means that list of tricks will be
+        /// generated for this <paramref name="gameId"/> that should be iterated using <see cref="NextTrick(long)"/>.
+        /// The very first trick will be populated as a result of starting a new game.
+        /// </summary>
+        /// <param name="gameId">Unique Id for new game</param>
+        /// <param name="difficulty">Difficulty level</param>
+        /// <returns>First trick from generated trick sequence that will be used in this new game.</returns>
+        public async Task<string> Start(long gameId, Difficulty difficulty)
 		{
-            //TODO: add generated 
-            //var trickListForThisGame = _cache.Get(gameId);
-            //if (trickListForThisGame == null) // if null then generate it
-            //if not null throw exception - the game already started!
             if ((await _cache.GetStringAsync(gameId.ToString())) != null)
                 throw new GameAlreadyStartedException("The game is already started, if you want to end it now, I can't help you.");
             var gameState = new GameState(gameId, new Stack<string>(_tricks.GenerateFor(difficulty).Shuffle()));
@@ -58,6 +53,7 @@ namespace GameOfSkateBotApi.GameLogic
             if ((await _cache.GetStringAsync(gameId.ToString())) == null)
             {
                 throw new GameNotStartedException("You didn't start the game, ain't ya?");
+
             }
 
             var gameState = JsonSerializer.Deserialize<GameState>(await _cache.GetStringAsync(gameId.ToString()));
@@ -65,23 +61,21 @@ namespace GameOfSkateBotApi.GameLogic
             if (!gameState.Tricks.Any())
                 return await End(gameId);
 
+            callback?.Invoke(GameEventType.NextTrick, gameId);
             var nextTrick = gameState.Tricks.Pop();
             await _cache.SetStringAsync(gameState.GameId.ToString(), JsonSerializer.Serialize(gameState));
 
             return nextTrick;
         }
 
-		/// <summary>
-		/// Clean all related data for current game
-		/// </summary>
 		public async Task<string> End(long gameId)
         {
-            //TODO: remove this code, clear cache destroy stack of tricks
             if ((await _cache.GetStringAsync(gameId.ToString())) == null)
                 throw new GameNotStartedException("You didn't start the game, ain't ya?");
 
             await _cache.RemoveAsync(gameId.ToString());
 
+            callback?.Invoke(GameEventType.GameEnded, gameId);
             return "Game Over";
         }
     }

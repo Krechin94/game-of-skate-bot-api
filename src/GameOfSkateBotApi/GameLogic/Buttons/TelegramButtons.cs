@@ -70,18 +70,9 @@ namespace GameOfSkateBotApi.Buttons
         }
         public async Task ShowButtons(long chatid, ReplyKeyboardMarkup replyKeyboard, string message)
         {
-            try
-            {
-
                 await _botClient.SendTextMessageAsync(
                                         chatid, message!,
                                         replyMarkup: replyKeyboard);
-            }
-            catch
-            {
-                throw new Exception();
-            }
-
         }
     }
 }
