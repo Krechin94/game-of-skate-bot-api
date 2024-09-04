@@ -2,6 +2,8 @@
 using GameOfSkateBotApi.GameLogic.Common;
 using GameOfSkateBotApi.GameLogic.Entity;
 using GameOfSkateBotApi.GameLogic.Exceptions;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace GameOfSkateBotApi.GameLogic
 {
@@ -12,12 +14,13 @@ namespace GameOfSkateBotApi.GameLogic
 
 		//TODO: replace the Dictionary with game state storage here:
 		//public IRedis _cache;
-		public Dictionary<long, Stack<string>> _gameIdWithTricks = [];
-
-		public Game(Tricks tricks, TelegramButtons telegramButtons)
+		//public Dictionary<long, Stack<string>> _gameIdWithTricks = [];
+        private IDistributedCache _cache;
+        public Game(Tricks tricks, TelegramButtons telegramButtons, IDistributedCache cache)
 		{
 			_tricks = tricks;
 			_telegramButtons = telegramButtons;
+			_cache = cache;
 		}
 
 		/// <summary>
@@ -28,17 +31,18 @@ namespace GameOfSkateBotApi.GameLogic
 		/// <param name="gameId">Unique Id for new game</param>
 		/// <param name="difficulty">Difficulty level</param>
 		/// <returns>First trick from generated trick sequence that will be used in this new game.</returns>
-		public Task<string> Start(long gameId, Difficulty difficulty)
+		public async Task<string> Start(long gameId, Difficulty difficulty)
 		{
-			//TODO: add generated 
-			//var trickListForThisGame = _cache.Get(gameId);
-			//if (trickListForThisGame == null) // if null then generate it
-			//if not null throw exception - the game already started!
-			if (_gameIdWithTricks.ContainsKey(gameId))
-				throw new GameAlreadyStartedException("The game is already started, if you want to end it now, I can't help you.");
-			_gameIdWithTricks.Add(gameId, new Stack<string>(_tricks.GenerateFor(difficulty).Shuffle()));
+            //TODO: add generated 
+            //var trickListForThisGame = _cache.Get(gameId);
+            //if (trickListForThisGame == null) // if null then generate it
+            //if not null throw exception - the game already started!
+            if ((await _cache.GetStringAsync(gameId.ToString())) != null)
+                throw new GameAlreadyStartedException("The game is already started, if you want to end it now, I can't help you.");
+            var gameState = new GameState(gameId, new Stack<string>(_tricks.GenerateFor(difficulty).Shuffle()));
+            await _cache.SetStringAsync(gameState.GameId.ToString(), JsonSerializer.Serialize(gameState));
 
-            return NextTrick(gameId);
+            return await NextTrick(gameId);
 		}
 
 		/// <summary>
@@ -49,42 +53,36 @@ namespace GameOfSkateBotApi.GameLogic
 		/// <returns>Next trick from generated trick sequence that is used in this new game.</returns>
 		/// <exception cref="GameNotStartedException">Thrown if there are no tricks left or <see cref="Start(long, Difficulty)"/>
 		/// wasn't invoked before accessing this method.</exception>
-		public Task<string> NextTrick(long gameId)
+		public async Task<string> NextTrick(long gameId)
         {
-			//TODO: get from cache here then check if game is null -
-			//if null then it wasn't ever written to the cache OR it's game over
-			if (!_gameIdWithTricks.ContainsKey(gameId))
-			{
+            if ((await _cache.GetStringAsync(gameId.ToString())) == null)
+            {
                 throw new GameNotStartedException("You didn't start the game, ain't ya?");
             }
 
-			if (!_gameIdWithTricks[gameId].Any())
-			{
-				_telegramButtons.ShowAddingLevelOrEndButtons(gameId);
-				return End(gameId);
-			}
+            var gameState = JsonSerializer.Deserialize<GameState>(await _cache.GetStringAsync(gameId.ToString()));
 
-            _telegramButtons.ShowNextOrEndButtons(gameId);
-            return Task.FromResult(_gameIdWithTricks[gameId].Pop());
-		}
+            if (!gameState.Tricks.Any())
+                return await End(gameId);
+
+            var nextTrick = gameState.Tricks.Pop();
+            await _cache.SetStringAsync(gameState.GameId.ToString(), JsonSerializer.Serialize(gameState));
+
+            return nextTrick;
+        }
 
 		/// <summary>
 		/// Clean all related data for current game
 		/// </summary>
-		public Task<string> End(long gameId)
-		{
-			//TODO: remove this code, clear cache destroy stack of tricks
-			if (!_gameIdWithTricks.ContainsKey(gameId))
-			{
-
-                _telegramButtons.ShowStartButtons(gameId);
+		public async Task<string> End(long gameId)
+        {
+            //TODO: remove this code, clear cache destroy stack of tricks
+            if ((await _cache.GetStringAsync(gameId.ToString())) == null)
                 throw new GameNotStartedException("You didn't start the game, ain't ya?");
 
-            }
+            await _cache.RemoveAsync(gameId.ToString());
 
-			_gameIdWithTricks.Remove(gameId);
-            _telegramButtons.ShowStartButtons(gameId);
-            return Task.FromResult("Game Over");
+            return "Game Over";
         }
     }
 }

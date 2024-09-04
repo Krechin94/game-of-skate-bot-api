@@ -14,8 +14,12 @@ namespace GameOfSkateBotApi
 
 			builder.Configuration.AddEnvironmentVariables();
 			builder.Services.AddControllers().AddNewtonsoftJson();
+            builder.Services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = builder.Configuration.GetConnectionString("RedisGameStorage");
+            });
 
-			var token = builder.Configuration.GetSection(nameof(TelegramBotSettings));
+            var token = builder.Configuration.GetSection(nameof(TelegramBotSettings));
 			var telegramToken = token.Get<TelegramBotSettings>()
 			?? throw new Exception("отсутствует токен");
 
